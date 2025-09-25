@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website</title>
+    <script></script>
+    <style type = "text/css">
+      body {
+        margin: 0;
+        height: 1000px;
+        justify-content: center;
+        align-items: center;
+        background: #000000;
+        position: absolute;
+        font-size: 50px;
+        color: #000000;
+        text-align: center;
+        text-shadow: 1px 1px #12634B;
+        overflow-y: scroll;
+      }
+      #box1{
+      width: 100%;
+			height: 100%;
+			
+			top: 20%;
+			left: 0%;
+      color: #49DEB1;
+			font-size: 300px;
+			text-align: center;
+			text-shadow: 3px 3px #12634B;
+      }
+    /* Fullscreen loader */
+    #loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #033221;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #49DEB1;
+      z-index: 9999;
+      transition: opacity 1s ease, visibility 1s ease;
+    }
+
+    .loading-bar {
+      width: 100%;
+      background: #333;
+      overflow: hidden;
+      margin: 20px auto;
+      height: 5px;
+    }
+
+    .progress {
+      height: 100%;
+      width: 10%;
+      background: #4caf50;
+      transition: width 0.2s;
+    }
+
+    #percent {
+      font-size: 20px;
+      margin-top: 10px;
+    }
+
+    /* Hidden state for loader */
+    #loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+     /* Navbar */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      background: #111;
+      color: white;
+    }
+
+    /* Logo button */
+    .logo {
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      text-decoration: none;
+      color: white;
+      transition: color 0.3s;
+    }
+    .logo:hover {
+      color: #4caf50;
+    }
+
+    /* Dropdown */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropbtn {
+      background: none;
+      color: white;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .dropbtn:hover {
+      color: #4caf50;
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background: #222;
+      min-width: 150px;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+      border-radius: 5px;
+      z-index: 1;
+    }
+    .dropdown-content a {
+      color: white;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+    }
+    .dropdown-content a:hover {
+      background: #4caf50;
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
+    /* Language switcher */
+    .lang-switch {
+      display: flex;
+      gap: 10px;
+    }
+    .lang-switch button {
+      background: none;
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s;
+      outline: none;
+      border: none;
+    }
+    .lang-switch button:hover {
+      background: #4caf50;
+      border-color: #4caf50;
+    }
+    </style>
+  </head>
+  <body>
+  <div id="loader">
+    <h2 >Loading...</h2>
+    <div class="loading-bar">
+      <div class="progress" id="progress"></div>
+    </div>
+    <div id="percent">0%</div>
+  </div>
+  <nav>
+    <!-- Logo button -->
+    <a href="index.html" class="logo">MyLogo</a>
+
+    <!-- Dropdown menu -->
+    <div class="dropdown">
+      <button class="dropbtn">Menu ▼</button>
+      <div class="dropdown-content">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </div>
+
+    <!-- Language switcher -->
+    <div class="lang-switch">
+      <button onclick="setLanguage('en')">EN</button>
+      <button onclick="setLanguage('zh')">中文</button>
+    </div>
+  </nav>
+<DIV id="box1">IDK🤔</DIV>
+  <script>
+    let progress = document.getElementById("progress");
+    let percentText = document.getElementById("percent");
+    let loader = document.getElementById("loader");
+    let content = document.getElementById("content");
+    let width = 0;
+
+    let interval = setInterval(() => {
+      if (width >= 100) {
+        clearInterval(interval);
+
+        // Fade out loader
+        loader.classList.add("hidden");
+
+        // Show content after fade
+        setTimeout(() => {
+          content.style.display = "block";
+          document.body.style.overflow = "auto"; // Enable scroll
+        }, 1000); // match fade duration
+      } else {
+        width++;
+        progress.style.width = width + "%";
+        percentText.textContent = width + "%";
+      }
+    }, 1); // speed
+     
+    function setLanguage(lang) {
+      if (lang === 'en') {
+        document.getElementById('box1').textContent = "this is a webstire";
+        document.getElementById('description').textContent = "This is an example page with dropdown, logo, and language switch.";
+      } else if (lang === 'zh') {
+        document.getElementById('box1').textContent = "網站 ";
+        document.getElementById('description').textContent = "";
+      }
+    }
+  </script>
+  </script>
+  </body>
+</html>
