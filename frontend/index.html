@@ -1,37 +1,802 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Exoplanet Detector</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Predator - Exoplanet Detection</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Navigation */
+    nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 40px;
+      background: rgba(17, 17, 17, 0.95);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    }
+
+    .menu-toggle {
+      font-size: 28px;
+      cursor: pointer;
+      color: #49DEB1;
+      transition: transform 0.3s;
+    }
+
+    .menu-toggle:hover {
+      transform: scale(1.1);
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      color: #49DEB1;
+      text-shadow: 2px 2px #12634B;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: -300px;
+      top: 0;
+      width: 280px;
+      height: 100vh;
+      background: rgba(17, 17, 17, 0.98);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+      transition: left 0.3s ease;
+      border-right: 2px solid #49DEB1;
+      overflow-y: auto;
+    }
+
+    .sidebar.open {
+      left: 0;
+    }
+
+    .sidebar-header {
+      padding: 20px;
+      border-bottom: 2px solid #49DEB1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .close-btn {
+      font-size: 28px;
+      cursor: pointer;
+      color: #49DEB1;
+    }
+
+    .sidebar-menu {
+      padding: 20px 0;
+    }
+
+    .menu-item {
+      padding: 15px 30px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border-left: 3px solid transparent;
+      color: #fff;
+    }
+
+    .menu-item:hover {
+      background: rgba(73, 222, 177, 0.1);
+      border-left-color: #49DEB1;
+    }
+
+    .submenu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .submenu.open {
+      max-height: 500px;
+    }
+
+    .submenu-item {
+      padding: 10px 30px 10px 50px;
+      cursor: pointer;
+      color: #ccc;
+      font-size: 14px;
+    }
+
+    .submenu-item:hover {
+      color: #49DEB1;
+    }
+
+    /* Page Content */
+    .page {
+      display: none;
+      padding: 40px 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* Home Page Styles */
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+      padding: 60px 20px;
+      background: rgba(73, 222, 177, 0.1);
+      border-radius: 20px;
+      border: 2px solid rgba(73, 222, 177, 0.3);
+    }
+
+    .hero h1 {
+      font-size: 56px;
+      color: #49DEB1;
+      text-shadow: 3px 3px #12634B;
+      margin-bottom: 20px;
+    }
+
+    .upload-section {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 30px;
+      border: 2px solid rgba(73, 222, 177, 0.2);
+    }
+
+    .upload-box {
+      border: 3px dashed #49DEB1;
+      border-radius: 15px;
+      padding: 60px 20px;
+      text-align: center;
+      background: rgba(73, 222, 177, 0.05);
+      cursor: pointer;
+      transition: all 0.3s;
+      display: block;
+    }
+
+    .upload-box:hover {
+      background: rgba(73, 222, 177, 0.1);
+      border-color: #5ff5c7;
+    }
+
+    .upload-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .upload-box p {
+      color: #ccc;
+      font-size: 18px;
+    }
+
+    .upload-box:hover {
+      background: rgba(73, 222, 177, 0.1);
+    }
+
+    .upload-box input {
+      display: none;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #49DEB1 0%, #12634B 100%);
+      color: white;
+      padding: 15px 40px;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(73, 222, 177, 0.4);
+    }
+
+    .btn:disabled {
+      background: #555;
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* Walkie Talkie Notification */
+    .walkie-notification {
+      position: fixed;
+      right: -250px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1500;
+      transition: right 0.5s ease;
+    }
+
+    .walkie-notification.show {
+      right: 30px;
+      animation: shake 0.5s infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateY(-50%) rotate(0deg); }
+      25% { transform: translateY(-50%) rotate(-5deg); }
+      75% { transform: translateY(-50%) rotate(5deg); }
+    }
+
+    .walkie-container {
+      background: rgba(0, 0, 0, 0.9);
+      border: 3px solid #0f0;
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 0 30px rgba(0, 255, 0, 0.5);
+    }
+
+    .walkie-icon {
+      font-size: 80px;
+      margin-bottom: 10px;
+      filter: drop-shadow(0 0 10px #0f0);
+    }
+
+    .walkie-text {
+      color: #0f0;
+      font-weight: bold;
+      font-size: 14px;
+      text-shadow: 0 0 5px #0f0;
+    }
+
+    /* Codec Results Page Styles */
+    #results {
+      background: #000;
+      min-height: calc(100vh - 70px);
+      position: relative;
+    }
+
+    .noise-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 0, 0.03) 0px,
+        transparent 1px,
+        transparent 2px,
+        rgba(0, 255, 0, 0.03) 3px
+      );
+      pointer-events: none;
+      animation: scan-lines 8s linear infinite;
+    }
+
+    @keyframes scan-lines {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(10px); }
+    }
+
+    .codec-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .codec-header {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .info-box {
+      border: 3px solid #0f0;
+      background: rgba(0, 20, 0, 0.95);
+      padding: 15px;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      text-align: center;
+      position: relative;
+    }
+
+    .info-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.05) 2px,
+        rgba(0, 255, 0, 0.05) 4px
+      );
+      pointer-events: none;
+    }
+
+    .info-label {
+      font-size: 12px;
+      color: #0a0;
+      margin-bottom: 5px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .info-value {
+      font-size: 20px;
+      font-weight: bold;
+      color: #0f0;
+      text-shadow: 0 0 10px #0f0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .avatar-box {
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+    }
+
+    .codec-content {
+      border: 3px solid #0f0;
+      background: rgba(0, 20, 0, 0.95);
+      padding: 20px;
+      min-height: 300px;
+      box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+      position: relative;
+    }
+
+    .codec-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+        180deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.05) 2px,
+        rgba(0, 255, 0, 0.05) 4px
+      );
+      pointer-events: none;
+    }
+
+    .speaker-name {
+      font-weight: bold;
+      font-size: 18px;
+      color: #0f0;
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px #0f0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .dialogue-text {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #0f0;
+      min-height: 100px;
+      white-space: pre-wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-box {
+      background: rgba(0, 50, 0, 0.5);
+      border: 2px solid #0a0;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #0a0;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: bold;
+      color: #0f0;
+      text-shadow: 0 0 8px #0f0;
+    }
+
+    .results-list {
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    .result-row {
+      background: rgba(0, 40, 0, 0.3);
+      border: 1px solid #0a0;
+      padding: 10px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #0f0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #0a0;
+    }
+
+    .glitch {
+      animation: glitch 3s infinite;
+    }
+
+    @keyframes glitch {
+      0%, 90%, 100% { transform: translate(0); }
+      91% { transform: translate(-2px, 1px); }
+      92% { transform: translate(2px, -1px); }
+      93% { transform: translate(-1px, 2px); }
+    }
+
+    /* About Page */
+    .about-content {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 40px;
+      border: 2px solid rgba(73, 222, 177, 0.2);
+    }
+
+    .about-content h2 {
+      color: #49DEB1;
+      margin: 30px 0 15px;
+      font-size: 32px;
+    }
+
+    .about-content p {
+      color: #ccc;
+      line-height: 1.8;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-<h1>Exoplanet Detection System</h1>
-<input type="file" id="csvFile" accept=".csv">
-<button onclick="uploadCSV()">Predict</button>
-<pre id="results"></pre>
 
-<script>
-async function uploadCSV() {
-    const fileInput = document.getElementById("csvFile");
-    if (!fileInput.files.length) return alert("Select a CSV file");
+  <!-- Navigation -->
+  <nav>
+    <div class="menu-toggle" onclick="toggleSidebar()">☰</div>
+    <div class="logo">THE PREDATOR</div>
+    <div style="width: 40px;"></div>
+  </nav>
 
-    const text = await fileInput.files[0].text();
-    const rows = text.split("\n");
-    const headers = rows[0].split(",");
-    const data = rows.slice(1).map(row => {
-        const values = row.split(",");
-        let obj = {};
-        headers.forEach((h,i)=> obj[h]=parseFloat(values[i]));
-        return obj;
+  <!-- Sidebar Menu -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div style="color: #49DEB1; font-weight: bold;">MENU</div>
+      <div class="close-btn" onclick="toggleSidebar()">×</div>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-item" onclick="showPage('home')">🏠 Home</div>
+      <div class="menu-item" onclick="showPage('results')">📊 Results</div>
+      <div class="menu-item" onclick="toggleSubmenu()">📖 About the Project ▼</div>
+      <div class="submenu" id="submenu">
+        <div class="submenu-item" onclick="showPage('about', 'section1')">→ Heading 1</div>
+        <div class="submenu-item" onclick="showPage('about', 'section2')">→ Heading 2</div>
+        <div class="submenu-item" onclick="showPage('about', 'section3')">→ Heading 3</div>
+        <div class="submenu-item" onclick="showPage('about', 'section4')">→ Heading 4</div>
+        <div class="submenu-item" onclick="showPage('about', 'section5')">→ Heading 5</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Home Page -->
+  <div class="page active" id="home">
+    <div class="hero">
+      <h1>🌌 Exoplanet Detection System</h1>
+      <p>AI-Powered Analysis of NASA Kepler K2 and TESS Mission Data</p>
+    </div>
+
+    <div class="upload-section">
+      <h2 style="color: #49DEB1; margin-bottom: 20px;">📤 Upload Your Data</h2>
+      <label for="fileInput" class="upload-box">
+        <div class="upload-icon">📁</div>
+        <p id="uploadText">Click to select CSV file</p>
+        <p id="fileName" style="margin-top: 15px; color: #49DEB1; font-weight: bold;"></p>
+        <input type="file" id="fileInput" accept=".csv">
+      </label>
+      
+      <button class="btn" id="analyzeBtn" onclick="analyzeData()" disabled>
+        Analyze with AI Model
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Page (Codec Style) -->
+  <div class="page" id="results">
+    <div class="noise-overlay"></div>
+    <div class="codec-container">
+      <div class="codec-header">
+        <div class="info-box">
+          <div class="info-label">OPERATOR</div>
+          <div class="info-value glitch">USER</div>
+        </div>
+        <div class="info-box">
+          <div class="info-label">CONTACT</div>
+          <div class="info-value glitch">THE PREDATOR</div>
+        </div>
+        <div class="info-box avatar-box">
+          👽
+        </div>
+      </div>
+
+      <div class="codec-content">
+        <div id="resultsEmpty" class="empty-state">
+          <div class="speaker-name">THE PREDATOR:</div>
+          <div class="dialogue-text">No mission data received yet.<br><br>Upload and analyze data from the Home page to begin transmission...</div>
+        </div>
+
+        <div id="resultsLoaded" class="hidden">
+          <div class="speaker-name glitch">THE PREDATOR:</div>
+          <div class="dialogue-text" id="codecDialogue">Initializing...</div>
+          
+          <div id="codecStats" class="hidden">
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-label">CONFIRMED</div>
+                <div class="stat-value" id="codecConfirmed">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">CANDIDATES</div>
+                <div class="stat-value" id="codecCandidates">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">FALSE POS</div>
+                <div class="stat-value" id="codecFalse">0</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">TOTAL</div>
+                <div class="stat-value" id="codecTotal">0</div>
+              </div>
+            </div>
+            
+            <div class="results-list" id="codecResults"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Page -->
+  <div class="page" id="about">
+    <div class="about-content">
+      <h1 style="color: #49DEB1; font-size: 48px; margin-bottom: 30px;">About The Predator Project</h1>
+      
+      <h2 id="section1">Heading 1</h2>
+      <p>Content for heading 1 will go here. You can add your project description, mission statement, or any relevant information about your exoplanet detection system.</p>
+      
+      <h2 id="section2">Heading 2</h2>
+      <p>Content for heading 2 will go here. This could include technical details about your machine learning model, the datasets used, or the methodology.</p>
+      
+      <h2 id="section3">Heading 3</h2>
+      <p>Content for heading 3 will go here. Perhaps information about the NASA missions (Kepler, K2, TESS) or the transit method of exoplanet detection.</p>
+      
+      <h2 id="section4">Heading 4</h2>
+      <p>Content for heading 4 will go here. This could cover the team members, acknowledgments, or references to research papers.</p>
+      
+      <h2 id="section5">Heading 5</h2>
+      <p>Content for heading 5 will go here. Additional information about future improvements, contact details, or how to contribute to the project.</p>
+    </div>
+  </div>
+
+  <!-- Walkie Talkie Notification -->
+  <div class="walkie-notification" id="walkieNotification">
+    <div class="walkie-container" onclick="goToResults()">
+      <div class="walkie-icon">📻</div>
+      <div class="walkie-text">CLICK TO SEE<br>RESULTS</div>
+    </div>
+  </div>
+
+  <!-- Audio for walkie talkie effect -->
+  <audio id="walkieSound" preload="auto">
+    <!-- Add your walkie talkie sound file here when you have it -->
+    <!-- <source src="walkie-sound.mp3" type="audio/mpeg"> -->
+  </audio>
+
+  <script>
+    let uploadedData = null;
+    let analysisResults = null;
+    let currentDialogueLine = 0;
+
+    const dialogue = [
+      "Kept you waiting, huh?",
+      "This is Predator. I've analyzed your exoplanet data...",
+      "The hunt has yielded interesting results...",
+      "Target acquisition complete. Displaying tactical data now..."
+    ];
+
+    // Sidebar functions
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function toggleSubmenu() {
+      document.getElementById('submenu').classList.toggle('open');
+    }
+
+    function showPage(pageName, sectionId) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageName).classList.add('active');
+      toggleSidebar();
+      
+      if (sectionId) {
+        setTimeout(() => {
+          document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+
+    // File upload
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('fileName').textContent = '✓ ' + file.name;
+        document.getElementById('analyzeBtn').disabled = false;
+        parseCSV(file);
+      }
     });
 
-    const res = await fetch("http://localhost:5000/predict", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({data: data})
-    });
-    const results = await res.json();
-    document.getElementById("results").textContent = JSON.stringify(results, null, 2);
-}
-</script>
+    function parseCSV(file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(result) {
+          uploadedData = result.data;
+        },
+        error: function(error) {
+          alert('Error parsing CSV: ' + error.message);
+        }
+      });
+    }
+
+    async function analyzeData() {
+      if (!uploadedData) {
+        alert('Please upload a CSV file first');
+        return;
+      }
+
+      document.getElementById('analyzeBtn').disabled = true;
+      document.getElementById('analyzeBtn').textContent = 'Analyzing...';
+
+      try {
+        const response = await fetch('http://localhost:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: uploadedData })
+        });
+
+        if (!response.ok) throw new Error('Analysis failed');
+
+        const result = await response.json();
+        analysisResults = result.results || result;
+
+        // Show walkie talkie notification
+        document.getElementById('walkieNotification').classList.add('show');
+        
+        // Play sound if available
+        const sound = document.getElementById('walkieSound');
+        if (sound.src) sound.play().catch(e => console.log('Audio play failed'));
+
+        document.getElementById('analyzeBtn').textContent = 'Analysis Complete!';
+      } catch (error) {
+        alert('Error: ' + error.message);
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtn').textContent = 'Analyze with AI Model';
+      }
+    }
+
+    function goToResults() {
+      showPage('results');
+      document.getElementById('walkieNotification').classList.remove('show');
+      document.getElementById('resultsEmpty').classList.add('hidden');
+      document.getElementById('resultsLoaded').classList.remove('hidden');
+      currentDialogueLine = 0;
+      typeDialogue();
+    }
+
+    function typeDialogue() {
+      if (currentDialogueLine >= dialogue.length) {
+        setTimeout(displayResults, 500);
+        return;
+      }
+
+      const text = dialogue[currentDialogueLine];
+      const element = document.getElementById('codecDialogue');
+      let i = 0;
+      element.textContent = '';
+
+      const interval = setInterval(() => {
+        if (i < text.length) {
+          element.textContent += text[i];
+          i++;
+        } else {
+          clearInterval(interval);
+          currentDialogueLine++;
+          setTimeout(typeDialogue, 1000);
+        }
+      }, 50);
+    }
+
+    function displayResults() {
+      if (!analysisResults) return;
+
+      let confirmed = 0, candidates = 0, falsePos = 0;
+      
+      analysisResults.forEach(r => {
+        if (r.classification === 'Confirmed Exoplanet') confirmed++;
+        else if (r.classification === 'Candidate') candidates++;
+        else falsePos++;
+      });
+
+      document.getElementById('codecConfirmed').textContent = confirmed;
+      document.getElementById('codecCandidates').textContent = candidates;
+      document.getElementById('codecFalse').textContent = falsePos;
+      document.getElementById('codecTotal').textContent = analysisResults.length;
+
+      let resultsHTML = '';
+      const displayLimit = Math.min(20, analysisResults.length);
+      
+      for (let i = 0; i < displayLimit; i++) {
+        const r = analysisResults[i];
+        resultsHTML += `
+          <div class="result-row">
+            <span>#${r.id} - ${r.classification}</span>
+            <span>Confidence: ${r.confidence}%</span>
+          </div>
+        `;
+      }
+      
+      if (analysisResults.length > 20) {
+        resultsHTML += `<div style="text-align: center; color: #0a0; margin-top: 10px; font-size: 12px;">Showing first 20 of ${analysisResults.length} results</div>`;
+      }
+
+      document.getElementById('codecResults').innerHTML = resultsHTML;
+      document.getElementById('codecStats').classList.remove('hidden');
+    }
+  </script>
+
 </body>
 </html>
