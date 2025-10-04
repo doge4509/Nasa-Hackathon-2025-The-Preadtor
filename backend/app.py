@@ -83,31 +83,47 @@ def other_pages(page):
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        print("\n=== PREDICT REQUEST RECEIVED ===")
+        
         if model is None or scaler is None:
             return jsonify({'error': 'Model not loaded properly'}), 500
         
+        # Define the 15 safe features your model expects
+        SAFE_FEATURES = [
+            'koi_period', 'koi_time0bk', 'koi_impact', 'koi_duration',
+            'koi_depth', 'koi_model_snr', 'koi_prad', 'koi_teq', 
+            'koi_insol', 'koi_steff', 'koi_slogg', 'koi_srad', 
+            'koi_kepmag', 'ra', 'dec'
+        ]
+        
         # Get data from request
         data = request.json.get('data', [])
+        print(f"Data received: {len(data)} rows")
+        
         if not data:
             return jsonify({'error': 'No data provided'}), 400
 
         # Convert to DataFrame
         df = pd.DataFrame(data)
-
-        # Preprocess data - select only numeric columns
-        feature_columns = df.select_dtypes(include=[np.number]).columns.tolist()
+        print(f"Original DataFrame shape: {df.shape}")
         
-        # Ensure we have the right number of features
-        if len(feature_columns) != input_dim:
+        # Check if all safe features are present
+        missing_features = [f for f in SAFE_FEATURES if f not in df.columns]
+        if missing_features:
             return jsonify({
-                'error': f'Expected {input_dim} features, got {len(feature_columns)}',
-                'provided_features': feature_columns
+                'error': f'Missing required features: {missing_features}'
             }), 400
         
-        X = df[feature_columns].fillna(df[feature_columns].mean())
+        # FILTER TO SAFE FEATURES ONLY
+        df_safe = df[SAFE_FEATURES].copy()
+        print(f"Filtered to {len(SAFE_FEATURES)} safe features: {df_safe.shape}")
+        
+        # Fill missing values
+        X = df_safe.fillna(df_safe.mean())
 
         # Scale features
         X_scaled = scaler.transform(X)
+        print("Data scaled successfully")
 
         # Convert to torch tensor
         X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
@@ -117,6 +133,8 @@ def predict():
             outputs = model(X_tensor)
             probs = torch.softmax(outputs, dim=1).cpu().numpy()
             preds = np.argmax(probs, axis=1)
+
+        print(f"✅ Predictions made: {len(preds)} results")
 
         # Format results
         results = []
@@ -143,12 +161,13 @@ def predict():
         })
 
     except Exception as e:
+        print(f"❌ EXCEPTION: {str(e)}")
         import traceback
+        traceback.print_exc()
         return jsonify({
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 400
-
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health():

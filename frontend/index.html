@@ -1,4 +1,6 @@
-<!DOCTYPE html>
+.glitch {
+      animation: glitch 3s infinite;
+    }<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -292,7 +294,7 @@
     }
 
     .codec-container {
-      max-width: 900px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 40px 20px;
       position: relative;
@@ -309,7 +311,7 @@
     .info-box {
       border: 3px solid #0f0;
       background: rgba(0, 20, 0, 0.95);
-      padding: 15px;
+      padding: 20px;
       box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
       text-align: center;
       position: relative;
@@ -341,7 +343,7 @@
     }
 
     .info-value {
-      font-size: 20px;
+      font-size: 24px;
       font-weight: bold;
       color: #0f0;
       text-shadow: 0 0 10px #0f0;
@@ -350,18 +352,18 @@
     }
 
     .avatar-box {
-      height: 100px;
+      height: 120px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 48px;
+      font-size: 64px;
     }
 
     .codec-content {
       border: 3px solid #0f0;
       background: rgba(0, 20, 0, 0.95);
-      padding: 20px;
-      min-height: 300px;
+      padding: 30px;
+      min-height: 400px;
       box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
       position: relative;
     }
@@ -442,12 +444,33 @@
     .result-row {
       background: rgba(0, 40, 0, 0.3);
       border: 1px solid #0a0;
-      padding: 10px;
-      margin-bottom: 5px;
+      padding: 15px;
+      margin-bottom: 8px;
       display: flex;
       justify-content: space-between;
-      font-size: 14px;
+      align-items: center;
+      font-size: 15px;
+    }
+
+    .result-classification {
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .classification-confirmed {
       color: #0f0;
+      text-shadow: 0 0 8px #0f0;
+    }
+
+    .classification-candidate {
+      color: #ff0;
+      text-shadow: 0 0 8px #ff0;
+    }
+
+    .classification-false {
+      color: #f00;
+      text-shadow: 0 0 8px #f00;
     }
 
     .empty-state {
@@ -456,8 +479,25 @@
       color: #0a0;
     }
 
-    .glitch {
-      animation: glitch 3s infinite;
+    .skip-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 255, 0, 0.2);
+      border: 2px solid #0f0;
+      color: #0f0;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      font-size: 14px;
+      z-index: 10;
+      transition: all 0.3s;
+    }
+
+    .skip-btn:hover {
+      background: rgba(0, 255, 0, 0.4);
+      box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
     }
 
     @keyframes glitch {
@@ -571,27 +611,9 @@
         <div id="resultsLoaded" class="hidden">
           <div class="speaker-name glitch">THE PREDATOR:</div>
           <div class="dialogue-text" id="codecDialogue">Initializing...</div>
+          <button class="skip-btn" id="skipBtn" onclick="skipDialogue()">SKIP →</button>
           
           <div id="codecStats" class="hidden">
-            <div class="stats-grid">
-              <div class="stat-box">
-                <div class="stat-label">CONFIRMED</div>
-                <div class="stat-value" id="codecConfirmed">0</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">CANDIDATES</div>
-                <div class="stat-value" id="codecCandidates">0</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">FALSE POS</div>
-                <div class="stat-value" id="codecFalse">0</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-label">TOTAL</div>
-                <div class="stat-value" id="codecTotal">0</div>
-              </div>
-            </div>
-            
             <div class="results-list" id="codecResults"></div>
           </div>
         </div>
@@ -642,10 +664,103 @@
 
     const dialogue = [
       "Kept you waiting, huh?",
-      "This is Predator. I've analyzed your exoplanet data...",
-      "The hunt has yielded interesting results...",
-      "Target acquisition complete. Displaying data now..."
+      "This is Predator. I've completed analysis of your targets...",
+      "Scanning data signatures... Processing classifications...",
+      "Target identification complete. Displaying results now..."
     ];
+
+    // Safe features used for training (15 features)
+    const safeFeatures = [
+      'koi_period','koi_time0bk','koi_impact','koi_duration',
+      'koi_depth','koi_model_snr',
+      'koi_prad','koi_teq','koi_insol',
+      'koi_steff','koi_slogg','koi_srad','koi_kepmag',
+      'ra','dec'
+    ];
+
+    // File upload handler
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('fileName').textContent = '✓ ' + file.name;
+        document.getElementById('analyzeBtn').disabled = false;
+        parseCSV(file);
+      }
+    });
+
+    function parseCSV(file) {
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(result) {
+          uploadedData = result.data;
+          console.log('CSV loaded:', uploadedData.length, 'rows');
+          console.log('Available columns:', Object.keys(uploadedData[0]));
+          
+          // Filter to safe features only
+          const filteredData = uploadedData.map(row => {
+            const safeRow = {};
+            safeFeatures.forEach(feature => {
+              if (row[feature] !== undefined && row[feature] !== null) {
+                safeRow[feature] = row[feature];
+              }
+            });
+            return safeRow;
+          });
+          
+          uploadedData = filteredData;
+          console.log('Filtered to safe features. Sample:', uploadedData[0]);
+        },
+        error: function(error) {
+          alert('Error parsing CSV: ' + error.message);
+        }
+      });
+    }
+
+    async function analyzeData() {
+      if (!uploadedData || uploadedData.length === 0) {
+        alert('Please upload a CSV file first');
+        return;
+      }
+
+      const btn = document.getElementById('analyzeBtn');
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+
+      try {
+        console.log('Sending data to backend:', uploadedData.length, 'rows');
+        console.log('Sample data:', uploadedData[0]);
+        
+        const response = await fetch('http://localhost:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: uploadedData })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Backend response:', result);
+        
+        analysisResults = result.results || result;
+
+        // Show walkie talkie notification
+        document.getElementById('walkieNotification').classList.add('show');
+        
+        btn.textContent = 'Analysis Complete!';
+        btn.disabled = false;
+
+      } catch (error) {
+        console.error('Analysis error:', error);
+        alert('Error during analysis: ' + error.message + '\n\nMake sure your Flask backend is running on http://localhost:5000');
+        btn.disabled = false;
+        btn.textContent = 'Analyze with AI Model';
+      }
+    }
 
     // Sidebar functions
     function toggleSidebar() {
@@ -659,7 +774,30 @@
     function showPage(pageName, sectionId) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById(pageName).classList.add('active');
-      toggleSidebar();
+      
+      // Close sidebar when navigating
+      document.getElementById('sidebar').classList.remove('open');
+      
+      // Reset upload form when going back to home
+      if (pageName === 'home') {
+        document.getElementById('fileName').textContent = '';
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('analyzeBtn').textContent = 'Analyze with AI Model';
+        document.getElementById('fileInput').value = ''; // Clear file input
+        uploadedData = null;
+      }
+      
+      // Handle results page
+      if (pageName === 'results') {
+        if (analysisResults && analysisResults.length > 0) {
+          // We have results, show them
+          goToResults();
+        } else {
+          // No results yet
+          document.getElementById('resultsEmpty').classList.remove('hidden');
+          document.getElementById('resultsLoaded').classList.add('hidden');
+        }
+      }
       
       if (sectionId) {
         setTimeout(() => {
@@ -729,16 +867,34 @@
     }
 
     function goToResults() {
-      showPage('results');
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('results').classList.add('active');
       document.getElementById('walkieNotification').classList.remove('show');
-      document.getElementById('resultsEmpty').classList.add('hidden');
-      document.getElementById('resultsLoaded').classList.remove('hidden');
+      
+      const resultsEmpty = document.getElementById('resultsEmpty');
+      const resultsLoaded = document.getElementById('resultsLoaded');
+      const skipBtn = document.getElementById('skipBtn');
+      
+      if (resultsEmpty) resultsEmpty.classList.add('hidden');
+      if (resultsLoaded) resultsLoaded.classList.remove('hidden');
+      if (skipBtn) skipBtn.style.display = 'block';
+      
       currentDialogueLine = 0;
       typeDialogue();
     }
 
+    function skipDialogue() {
+      currentDialogueLine = dialogue.length;
+      document.getElementById('codecDialogue').textContent = dialogue[dialogue.length - 1];
+      document.getElementById('skipBtn').style.display = 'none';
+      displayResults();
+    }
+
     function typeDialogue() {
       if (currentDialogueLine >= dialogue.length) {
+        // Hide skip button and show results after dialogue completes
+        const skipBtn = document.getElementById('skipBtn');
+        if (skipBtn) skipBtn.style.display = 'none';
         setTimeout(displayResults, 500);
         return;
       }
@@ -755,42 +911,42 @@
         } else {
           clearInterval(interval);
           currentDialogueLine++;
-          setTimeout(typeDialogue, 1000);
+          setTimeout(typeDialogue, 800);
         }
-      }, 50);
+      }, 40);
     }
 
     function displayResults() {
       if (!analysisResults) return;
 
-      let confirmed = 0, candidates = 0, falsePos = 0;
-      
-      analysisResults.forEach(r => {
-        if (r.classification === 'Confirmed Exoplanet') confirmed++;
-        else if (r.classification === 'Candidate') candidates++;
-        else falsePos++;
-      });
-
-      document.getElementById('codecConfirmed').textContent = confirmed;
-      document.getElementById('codecCandidates').textContent = candidates;
-      document.getElementById('codecFalse').textContent = falsePos;
-      document.getElementById('codecTotal').textContent = analysisResults.length;
-
+      // Just show the individual result classification
       let resultsHTML = '';
-      const displayLimit = Math.min(20, analysisResults.length);
       
-      for (let i = 0; i < displayLimit; i++) {
+      for (let i = 0; i < analysisResults.length; i++) {
         const r = analysisResults[i];
+        let classColor = '';
+        let classText = '';
+        
+        if (r.classification === 'Confirmed Exoplanet') {
+          classColor = 'classification-confirmed';
+          classText = '✓ CONFIRMED EXOPLANET';
+        } else if (r.classification === 'Candidate') {
+          classColor = 'classification-candidate';
+          classText = '? CANDIDATE';
+        } else {
+          classColor = 'classification-false';
+          classText = '✗ FALSE POSITIVE';
+        }
+        
         resultsHTML += `
           <div class="result-row">
-            <span>#${r.id} - ${r.classification}</span>
-            <span>Confidence: ${r.confidence}%</span>
+            <div>
+              <span style="color: #0a0;">[TARGET #${r.id}]</span>
+              <span class="result-classification ${classColor}"> ${classText}</span>
+            </div>
+            <span style="color: #0f0;">CONFIDENCE: ${r.confidence}%</span>
           </div>
         `;
-      }
-      
-      if (analysisResults.length > 20) {
-        resultsHTML += `<div style="text-align: center; color: #0a0; margin-top: 10px; font-size: 12px;">Showing first 20 of ${analysisResults.length} results</div>`;
       }
 
       document.getElementById('codecResults').innerHTML = resultsHTML;
