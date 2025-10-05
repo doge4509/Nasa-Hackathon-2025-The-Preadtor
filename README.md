@@ -1,6 +1,6 @@
 # 🌌 The Predator - Exoplanet Detection Webpage
 
-A Deep learning-powered exoplanet detection system using NASA's Kepler mission data. 
+A Deep learning-powered exoplanet detection system using NASA's Kepler mission data.
 
 ![Project Banner](https://img.shields.io/badge/NASA-Space%20Apps%202025-blue)
 ![Python](https://img.shields.io/badge/Python-3.8+-green)
@@ -26,8 +26,8 @@ A Deep learning-powered exoplanet detection system using NASA's Kepler mission d
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/NASA-SPACE-APP-2025-CHALLENGE.git
-cd NASA-SPACE-APP-2025-CHALLENGE
+git clone https://github.com/doge4509/Nasa-Hackathon-2025-The-Preadtor.git
+cd Nasa-Hackathon-2025-The-Preadtor
 ```
 
 ### 2. Install Python Dependencies
