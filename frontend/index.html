@@ -1,12 +1,9 @@
-.glitch {
-      animation: glitch 3s infinite;
-    }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>The Predator - Exoplanet Detection</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -22,7 +19,6 @@
       overflow-x: hidden;
     }
 
-    /* Navigation */
     nav {
       display: flex;
       justify-content: space-between;
@@ -103,29 +99,6 @@
       border-left-color: #49DEB1;
     }
 
-    .submenu {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      background: rgba(0, 0, 0, 0.3);
-    }
-
-    .submenu.open {
-      max-height: 500px;
-    }
-
-    .submenu-item {
-      padding: 10px 30px 10px 50px;
-      cursor: pointer;
-      color: #ccc;
-      font-size: 14px;
-    }
-
-    .submenu-item:hover {
-      color: #49DEB1;
-    }
-
-    /* Page Content */
     .page {
       display: none;
       padding: 40px 20px;
@@ -137,7 +110,6 @@
       display: block;
     }
 
-    /* Home Page Styles */
     .hero {
       text-align: center;
       margin-bottom: 50px;
@@ -175,25 +147,21 @@
 
     .upload-box:hover {
       background: rgba(73, 222, 177, 0.1);
-      border-color: #5ff5c7;
+    }
+
+    .upload-box.drag-over {
+      background: rgba(73, 222, 177, 0.2);
+      border-color: #49DEB1;
+      transform: scale(1.02);
+    }
+
+    .upload-box input {
+      display: none;
     }
 
     .upload-icon {
       font-size: 64px;
       margin-bottom: 20px;
-    }
-
-    .upload-box p {
-      color: #ccc;
-      font-size: 18px;
-    }
-
-    .upload-box:hover {
-      background: rgba(73, 222, 177, 0.1);
-    }
-
-    .upload-box input {
-      display: none;
     }
 
     .btn {
@@ -207,6 +175,7 @@
       cursor: pointer;
       transition: all 0.3s;
       margin-top: 20px;
+      font-family: 'Courier New', monospace;
     }
 
     .btn:hover {
@@ -220,7 +189,6 @@
       opacity: 0.5;
     }
 
-    /* Walkie Talkie Notification */
     .walkie-notification {
       position: fixed;
       right: -250px;
@@ -264,7 +232,6 @@
       text-shadow: 0 0 5px #0f0;
     }
 
-    /* Codec Results Page Styles */
     #results {
       background: #000;
       min-height: calc(100vh - 70px);
@@ -396,8 +363,8 @@
     }
 
     .dialogue-text {
-      font-size: 16px;
-      line-height: 1.6;
+      font-size: 20px;
+      line-height: 1.8;
       color: #0f0;
       min-height: 100px;
       white-space: pre-wrap;
@@ -405,37 +372,9 @@
       z-index: 1;
     }
 
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-top: 20px;
-      position: relative;
-      z-index: 1;
-    }
-
-    .stat-box {
-      background: rgba(0, 50, 0, 0.5);
-      border: 2px solid #0a0;
-      padding: 15px;
-      text-align: center;
-    }
-
-    .stat-label {
-      font-size: 12px;
-      color: #0a0;
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: bold;
-      color: #0f0;
-      text-shadow: 0 0 8px #0f0;
-    }
-
     .results-list {
       margin-top: 20px;
-      max-height: 300px;
+      max-height: 400px;
       overflow-y: auto;
       position: relative;
       z-index: 1;
@@ -446,9 +385,6 @@
       border: 1px solid #0a0;
       padding: 15px;
       margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       font-size: 15px;
     }
 
@@ -473,12 +409,6 @@
       text-shadow: 0 0 8px #f00;
     }
 
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #0a0;
-    }
-
     .skip-btn {
       position: absolute;
       top: 20px;
@@ -500,6 +430,16 @@
       box-shadow: 0 0 15px rgba(0, 255, 0, 0.6);
     }
 
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #0a0;
+    }
+
+    .glitch {
+      animation: glitch 3s infinite;
+    }
+
     @keyframes glitch {
       0%, 90%, 100% { transform: translate(0); }
       91% { transform: translate(-2px, 1px); }
@@ -507,42 +447,36 @@
       93% { transform: translate(-1px, 2px); }
     }
 
-    /* About Page */
-    .about-content {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 20px;
-      padding: 40px;
-      border: 2px solid rgba(73, 222, 177, 0.2);
-    }
-
-    .about-content h2 {
-      color: #49DEB1;
-      margin: 30px 0 15px;
-      font-size: 32px;
-    }
-
-    .about-content p {
-      color: #ccc;
-      line-height: 1.8;
-      margin-bottom: 15px;
-      font-size: 16px;
-    }
-
     .hidden {
       display: none;
+    }
+
+    .chart-container {
+      margin-bottom: 30px;
+      background: rgba(0, 40, 0, 0.3);
+      border: 2px solid #0a0;
+      padding: 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .chart-title {
+      color: #0f0;
+      font-weight: bold;
+      margin-bottom: 15px;
+      text-shadow: 0 0 10px #0f0;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Navigation -->
   <nav>
     <div class="menu-toggle" onclick="toggleSidebar()">☰</div>
     <div class="logo">THE PREDATOR</div>
     <div style="width: 40px;"></div>
   </nav>
 
-  <!-- Sidebar Menu -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div style="color: #49DEB1; font-weight: bold;">MENU</div>
@@ -551,31 +485,21 @@
     <div class="sidebar-menu">
       <div class="menu-item" onclick="showPage('home')">🏠 Home</div>
       <div class="menu-item" onclick="showPage('results')">📊 Results</div>
-      <div class="menu-item" onclick="toggleSubmenu()">📖 About the Project ▼</div>
-      <div class="submenu" id="submenu">
-        <div class="submenu-item" onclick="showPage('about', 'section1')">→ Heading 1</div>
-        <div class="submenu-item" onclick="showPage('about', 'section2')">→ Heading 2</div>
-        <div class="submenu-item" onclick="showPage('about', 'section3')">→ Heading 3</div>
-        <div class="submenu-item" onclick="showPage('about', 'section4')">→ Heading 4</div>
-        <div class="submenu-item" onclick="showPage('about', 'section5')">→ Heading 5</div>
-      </div>
     </div>
   </div>
 
-  <!-- Home Page -->
   <div class="page active" id="home">
     <div class="hero">
       <h1>🌌 Exoplanet Detection System</h1>
-      <p>AI-Powered Analysis of NASA Kepler K2 and TESS Mission Data</p>
     </div>
 
     <div class="upload-section">
-      <h2 style="color: #49DEB1; margin-bottom: 20px;">📤 Upload Your Data</h2>
-      <label for="fileInput" class="upload-box">
+      <h2 style="color: #49DEB1; margin-bottom: 20px;">📤 Upload NPZ File</h2>
+      <label for="fileInput" class="upload-box" id="uploadBox">
         <div class="upload-icon">📁</div>
-        <p id="uploadText">Click to select CSV file</p>
+        <p style="color: #ccc; font-size: 18px;">Click or drag NPZ file here</p>
         <p id="fileName" style="margin-top: 15px; color: #49DEB1; font-weight: bold;"></p>
-        <input type="file" id="fileInput" accept=".csv">
+        <input type="file" id="fileInput" accept=".npz">
       </label>
       
       <button class="btn" id="analyzeBtn" onclick="analyzeData()" disabled>
@@ -584,7 +508,6 @@
     </div>
   </div>
 
-  <!-- Results Page (Codec Style) -->
   <div class="page" id="results">
     <div class="noise-overlay"></div>
     <div class="codec-container">
@@ -605,15 +528,19 @@
       <div class="codec-content">
         <div id="resultsEmpty" class="empty-state">
           <div class="speaker-name">THE PREDATOR:</div>
-          <div class="dialogue-text">No mission data received yet.<br><br>Upload and analyze data from the Home page to begin transmission...</div>
+          <div class="dialogue-text">No mission data received yet.<br><br>Upload and analyze NPZ file from the Home page to begin transmission...</div>
         </div>
 
         <div id="resultsLoaded" class="hidden">
+          <button class="skip-btn" id="skipBtn" onclick="skipDialogue()">SKIP →</button>
           <div class="speaker-name glitch">THE PREDATOR:</div>
           <div class="dialogue-text" id="codecDialogue">Initializing...</div>
-          <button class="skip-btn" id="skipBtn" onclick="skipDialogue()">SKIP →</button>
           
           <div id="codecStats" class="hidden">
+            <div class="chart-container">
+              <div class="chart-title">LIGHT CURVE ANALYSIS:</div>
+              <canvas id="lightCurveChart"></canvas>
+            </div>
             <div class="results-list" id="codecResults"></div>
           </div>
         </div>
@@ -621,29 +548,6 @@
     </div>
   </div>
 
-  <!-- About Page -->
-  <div class="page" id="about">
-    <div class="about-content">
-      <h1 style="color: #49DEB1; font-size: 48px; margin-bottom: 30px;">About The Predator Project</h1>
-      
-      <h2 id="section1">Heading 1</h2>
-      <p>Content for heading 1 will go here. You can add your project description, mission statement, or any relevant information about your exoplanet detection system.</p>
-      
-      <h2 id="section2">Heading 2</h2>
-      <p>Content for heading 2 will go here. This could include technical details about your machine learning model, the datasets used, or the methodology.</p>
-      
-      <h2 id="section3">Heading 3</h2>
-      <p>Content for heading 3 will go here. Perhaps information about the NASA missions (Kepler, K2, TESS) or the transit method of exoplanet detection.</p>
-      
-      <h2 id="section4">Heading 4</h2>
-      <p>Content for heading 4 will go here. This could cover the team members, acknowledgments, or references to research papers.</p>
-      
-      <h2 id="section5">Heading 5</h2>
-      <p>Content for heading 5 will go here. Additional information about future improvements, contact details, or how to contribute to the project.</p>
-    </div>
-  </div>
-
-  <!-- Walkie Talkie Notification -->
   <div class="walkie-notification" id="walkieNotification">
     <div class="walkie-container" onclick="goToResults()">
       <div class="walkie-icon">📻</div>
@@ -651,76 +555,88 @@
     </div>
   </div>
 
-  <!-- Audio for walkie talkie effect -->
-  <audio id="walkieSound" preload="auto">
-    <!-- Add your walkie talkie sound file here when you have it -->
-    <!-- <source src="walkie-sound.mp3" type="audio/mpeg"> -->
-  </audio>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
   <script>
-    let uploadedData = null;
     let analysisResults = null;
+    let lightCurveData = null;
     let currentDialogueLine = 0;
 
     const dialogue = [
       "Kept you waiting, huh?",
-      "This is Predator. I've completed analysis of your targets...",
-      "Scanning data signatures... Processing classifications...",
-      "Target identification complete. Displaying results now..."
+      "This is Predator. Target acquired and analyzed...",
+      "Light curve processed. Classification complete...",
+      "Displaying results now..."
     ];
 
-    // Safe features used for training (15 features)
-    const safeFeatures = [
-      'koi_period','koi_time0bk','koi_impact','koi_duration',
-      'koi_depth','koi_model_snr',
-      'koi_prad','koi_teq','koi_insol',
-      'koi_steff','koi_slogg','koi_srad','koi_kepmag',
-      'ra','dec'
-    ];
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
 
-    // File upload handler
+    function showPage(pageName) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById(pageName).classList.add('active');
+      document.getElementById('sidebar').classList.remove('open');
+      
+      if (pageName === 'home') {
+        document.getElementById('fileName').textContent = '';
+        document.getElementById('analyzeBtn').disabled = true;
+        document.getElementById('analyzeBtn').textContent = 'Analyze with AI Model';
+        document.getElementById('fileInput').value = '';
+      }
+      
+      if (pageName === 'results' && analysisResults && analysisResults.length > 0) {
+        // Show results immediately without dialogue when manually navigating
+        showResultsDirectly();
+      }
+    }
+
     document.getElementById('fileInput').addEventListener('change', function(e) {
       const file = e.target.files[0];
       if (file) {
         document.getElementById('fileName').textContent = '✓ ' + file.name;
         document.getElementById('analyzeBtn').disabled = false;
-        parseCSV(file);
       }
     });
 
-    function parseCSV(file) {
-      Papa.parse(file, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        complete: function(result) {
-          uploadedData = result.data;
-          console.log('CSV loaded:', uploadedData.length, 'rows');
-          console.log('Available columns:', Object.keys(uploadedData[0]));
-          
-          // Filter to safe features only
-          const filteredData = uploadedData.map(row => {
-            const safeRow = {};
-            safeFeatures.forEach(feature => {
-              if (row[feature] !== undefined && row[feature] !== null) {
-                safeRow[feature] = row[feature];
-              }
-            });
-            return safeRow;
-          });
-          
-          uploadedData = filteredData;
-          console.log('Filtered to safe features. Sample:', uploadedData[0]);
-        },
-        error: function(error) {
-          alert('Error parsing CSV: ' + error.message);
+    // Drag and drop functionality
+    const uploadBox = document.getElementById('uploadBox');
+    const fileInput = document.getElementById('fileInput');
+
+    uploadBox.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadBox.classList.add('drag-over');
+    });
+
+    uploadBox.addEventListener('dragleave', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadBox.classList.remove('drag-over');
+    });
+
+    uploadBox.addEventListener('drop', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadBox.classList.remove('drag-over');
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.name.endsWith('.npz')) {
+          fileInput.files = files;
+          document.getElementById('fileName').textContent = '✓ ' + file.name;
+          document.getElementById('analyzeBtn').disabled = false;
+        } else {
+          alert('Please upload a .npz file');
         }
-      });
-    }
+      }
+    });
 
     async function analyzeData() {
-      if (!uploadedData || uploadedData.length === 0) {
-        alert('Please upload a CSV file first');
+      const fileInput = document.getElementById('fileInput');
+      
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Please upload an NPZ file first');
         return;
       }
 
@@ -728,14 +644,37 @@
       btn.disabled = true;
       btn.textContent = 'Analyzing...';
 
+      // Clear ALL previous results when starting new analysis
+      analysisResults = null;
+      lightCurveData = null;
+      currentDialogueLine = 0;
+      
+      // Reset results display completely
+      const resultsEmpty = document.getElementById('resultsEmpty');
+      const resultsLoaded = document.getElementById('resultsLoaded');
+      const codecResults = document.getElementById('codecResults');
+      const codecStats = document.getElementById('codecStats');
+      
+      if (resultsEmpty) resultsEmpty.classList.remove('hidden');
+      if (resultsLoaded) resultsLoaded.classList.add('hidden');
+      if (codecResults) codecResults.innerHTML = '';
+      if (codecStats) codecStats.classList.add('hidden');
+      
+      // Destroy previous chart if exists
+      if (window.lightCurveChartInstance) {
+        window.lightCurveChartInstance.destroy();
+        window.lightCurveChartInstance = null;
+      }
+
       try {
-        console.log('Sending data to backend:', uploadedData.length, 'rows');
-        console.log('Sample data:', uploadedData[0]);
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        
+        console.log('Sending file to backend...');
         
         const response = await fetch('http://localhost:5000/predict', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: uploadedData })
+          body: formData
         });
 
         if (!response.ok) {
@@ -746,11 +685,10 @@
         const result = await response.json();
         console.log('Backend response:', result);
         
-        analysisResults = result.results || result;
+        analysisResults = result.results || [];
+        lightCurveData = result.light_curve || null;
 
-        // Show walkie talkie notification
         document.getElementById('walkieNotification').classList.add('show');
-        
         btn.textContent = 'Analysis Complete!';
         btn.disabled = false;
 
@@ -762,114 +700,17 @@
       }
     }
 
-    // Sidebar functions
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('open');
-    }
-
-    function toggleSubmenu() {
-      document.getElementById('submenu').classList.toggle('open');
-    }
-
-    function showPage(pageName, sectionId) {
-      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-      document.getElementById(pageName).classList.add('active');
-      
-      // Close sidebar when navigating
-      document.getElementById('sidebar').classList.remove('open');
-      
-      // Reset upload form when going back to home
-      if (pageName === 'home') {
-        document.getElementById('fileName').textContent = '';
-        document.getElementById('analyzeBtn').disabled = true;
-        document.getElementById('analyzeBtn').textContent = 'Analyze with AI Model';
-        document.getElementById('fileInput').value = ''; // Clear file input
-        uploadedData = null;
-      }
-      
-      // Handle results page
-      if (pageName === 'results') {
-        if (analysisResults && analysisResults.length > 0) {
-          // We have results, show them
-          goToResults();
-        } else {
-          // No results yet
-          document.getElementById('resultsEmpty').classList.remove('hidden');
-          document.getElementById('resultsLoaded').classList.add('hidden');
-        }
-      }
-      
-      if (sectionId) {
-        setTimeout(() => {
-          document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      }
-    }
-
-    // File upload
-    document.getElementById('fileInput').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        document.getElementById('fileName').textContent = '✓ ' + file.name;
-        document.getElementById('analyzeBtn').disabled = false;
-        parseCSV(file);
-      }
-    });
-
-    function parseCSV(file) {
-      Papa.parse(file, {
-        header: true,
-        dynamicTyping: true,
-        skipEmptyLines: true,
-        complete: function(result) {
-          uploadedData = result.data;
-        },
-        error: function(error) {
-          alert('Error parsing CSV: ' + error.message);
-        }
-      });
-    }
-
-    async function analyzeData() {
-      if (!uploadedData) {
-        alert('Please upload a CSV file first');
-        return;
-      }
-
-      document.getElementById('analyzeBtn').disabled = true;
-      document.getElementById('analyzeBtn').textContent = 'Analyzing...';
-
-      try {
-        const response = await fetch('http://localhost:5000/predict', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: uploadedData })
-        });
-
-        if (!response.ok) throw new Error('Analysis failed');
-
-        const result = await response.json();
-        analysisResults = result.results || result;
-
-        // Show walkie talkie notification
-        document.getElementById('walkieNotification').classList.add('show');
-        
-        // Play sound if available
-        const sound = document.getElementById('walkieSound');
-        if (sound.src) sound.play().catch(e => console.log('Audio play failed'));
-
-        document.getElementById('analyzeBtn').textContent = 'Analysis Complete!';
-      } catch (error) {
-        alert('Error: ' + error.message);
-        document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('analyzeBtn').textContent = 'Analyze with AI Model';
-      }
-    }
-
     function goToResults() {
+      // This function is called FROM walkie notification (new analysis)
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       document.getElementById('results').classList.add('active');
       document.getElementById('walkieNotification').classList.remove('show');
+      
+      // Clear everything first
+      const codecResults = document.getElementById('codecResults');
+      const codecStats = document.getElementById('codecStats');
+      if (codecResults) codecResults.innerHTML = '';
+      if (codecStats) codecStats.classList.add('hidden');
       
       const resultsEmpty = document.getElementById('resultsEmpty');
       const resultsLoaded = document.getElementById('resultsLoaded');
@@ -883,16 +724,42 @@
       typeDialogue();
     }
 
+    function showResultsDirectly() {
+      // This function is called when manually navigating to results (no dialogue)
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.getElementById('results').classList.add('active');
+      
+      // Don't clear - keep existing results
+      const resultsEmpty = document.getElementById('resultsEmpty');
+      const resultsLoaded = document.getElementById('resultsLoaded');
+      const skipBtn = document.getElementById('skipBtn');
+      
+      if (resultsEmpty) resultsEmpty.classList.add('hidden');
+      if (resultsLoaded) resultsLoaded.classList.remove('hidden');
+      if (skipBtn) skipBtn.style.display = 'none';
+      
+      // Show final dialogue text without typing
+      document.getElementById('codecDialogue').textContent = dialogue[dialogue.length - 1];
+      
+      // Display results immediately (only if not already shown)
+      if (analysisResults && analysisResults.length > 0) {
+        const codecResults = document.getElementById('codecResults');
+        if (!codecResults.innerHTML) {
+          displayResults();
+        }
+      }
+    }
+
     function skipDialogue() {
       currentDialogueLine = dialogue.length;
       document.getElementById('codecDialogue').textContent = dialogue[dialogue.length - 1];
-      document.getElementById('skipBtn').style.display = 'none';
+      const skipBtn = document.getElementById('skipBtn');
+      if (skipBtn) skipBtn.style.display = 'none';
       displayResults();
     }
 
     function typeDialogue() {
       if (currentDialogueLine >= dialogue.length) {
-        // Hide skip button and show results after dialogue completes
         const skipBtn = document.getElementById('skipBtn');
         if (skipBtn) skipBtn.style.display = 'none';
         setTimeout(displayResults, 500);
@@ -917,9 +784,97 @@
     }
 
     function displayResults() {
-      if (!analysisResults) return;
+      if (!analysisResults || analysisResults.length === 0) return;
 
-      // Just show the individual result classification
+      // Clear previous chart first
+      if (window.lightCurveChartInstance) {
+        window.lightCurveChartInstance.destroy();
+        window.lightCurveChartInstance = null;
+      }
+
+      // Display light curve chart
+      if (lightCurveData && lightCurveData.time && lightCurveData.flux) {
+        const ctx = document.getElementById('lightCurveChart').getContext('2d');
+        
+        window.lightCurveChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: lightCurveData.time,
+            datasets: [{
+              label: 'Normalized Flux',
+              data: lightCurveData.flux,
+              borderColor: '#0f0',
+              backgroundColor: 'rgba(0, 255, 0, 0.1)',
+              borderWidth: 2,
+              pointRadius: 0,
+              pointHitRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.5,
+            plugins: {
+              legend: {
+                labels: {
+                  color: '#0f0',
+                  font: {
+                    family: "'Courier New', monospace",
+                    size: 14
+                  }
+                }
+              },
+              title: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: 'Time (days)',
+                  color: '#0f0',
+                  font: {
+                    family: "'Courier New', monospace",
+                    size: 12
+                  }
+                },
+                ticks: {
+                  color: '#0a0',
+                  font: {
+                    family: "'Courier New', monospace"
+                  },
+                  maxTicksLimit: 10
+                },
+                grid: {
+                  color: 'rgba(0, 255, 0, 0.1)'
+                }
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: 'Normalized Flux',
+                  color: '#0f0',
+                  font: {
+                    family: "'Courier New', monospace",
+                    size: 12
+                  }
+                },
+                ticks: {
+                  color: '#0a0',
+                  font: {
+                    family: "'Courier New', monospace"
+                  }
+                },
+                grid: {
+                  color: 'rgba(0, 255, 0, 0.1)'
+                }
+              }
+            }
+          }
+        });
+      }
+
       let resultsHTML = '';
       
       for (let i = 0; i < analysisResults.length; i++) {
@@ -941,10 +896,9 @@
         resultsHTML += `
           <div class="result-row">
             <div>
-              <span style="color: #0a0;">[TARGET #${r.id}]</span>
+              <span style="color: #0a0;">[${r.kepoi_name || 'TARGET #' + r.id}]</span>
               <span class="result-classification ${classColor}"> ${classText}</span>
             </div>
-            <span style="color: #0f0;">CONFIDENCE: ${r.confidence}%</span>
           </div>
         `;
       }

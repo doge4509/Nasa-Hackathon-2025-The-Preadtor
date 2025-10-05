@@ -1,15 +1,12 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-import joblib
-import pandas as pd
 import numpy as np
-import torch
+import io
 import os
-import warnings
-from model.mlp_model import MLP
-
-# Suppress sklearn version warnings
-warnings.filterwarnings('ignore', category=UserWarning)
+import torch
+import pickle
+import json
+from model.cnn_mlp_model import CNNPlusMLPReg
 
 # Flask setup
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,190 +15,301 @@ FRONTEND_DIR = os.path.join(BASE_DIR, '../frontend')
 app = Flask(__name__, template_folder=FRONTEND_DIR)
 CORS(app)
 
-# Define device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Load your PyTorch model
+# Tabular feature names (10 features)
+TAB_FEATS = [
+    "koi_depth", "koi_prad", "koi_teq", "koi_insol",
+    "koi_steff", "koi_slogg", "koi_srad",
+    "kepmag", "period", "duration_hr"
+]
+
+# ============== Load Model on Startup ==============
+
+model = None
+scaler = None
+thresholds = None
+
 try:
-    MODEL_PATH = os.path.join(BASE_DIR, 'model', 'mlp_weights.pth')
+    MODEL_PATH = os.path.join(BASE_DIR, 'model', 'cnn_mlp_weights.pth')
     SCALER_PATH = os.path.join(BASE_DIR, 'model', 'scaler.pkl')
+    THRESH_PATH = os.path.join(BASE_DIR, 'model', 'best_thresholds.json')
     
     print(f"Looking for model at: {MODEL_PATH}")
     print(f"Looking for scaler at: {SCALER_PATH}")
+    print(f"Looking for thresholds at: {THRESH_PATH}")
     
-    # Check if files exist
+    # Check files exist
     if not os.path.exists(MODEL_PATH):
         raise FileNotFoundError(f"Model file not found: {MODEL_PATH}")
     if not os.path.exists(SCALER_PATH):
         raise FileNotFoundError(f"Scaler file not found: {SCALER_PATH}")
-
-    # Load scaler first to get feature columns
-    scaler = joblib.load(SCALER_PATH)
     
-    # Get number of features from scaler
-    input_dim = scaler.n_features_in_ if hasattr(scaler, 'n_features_in_') else 20
-    
-    # FIXED: Changed num_classes from 2 to 3
-    model = MLP(input_dim=input_dim, num_classes=3).to(device)  
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+    # Load model
+    model = CNNPlusMLPReg(in_ch_lc=3, in_dim_tab=len(TAB_FEATS)).to(DEVICE)
+    state = torch.load(MODEL_PATH, map_location=DEVICE)
+    model.load_state_dict(state)
     model.eval()
-
-    print(f"✅ Model and scaler loaded successfully!")
-    print(f"   - Input dimensions: {input_dim}")
-    print(f"   - Number of classes: 3")
-    print(f"   - Device: {device}")
-    print(f"   - Model parameters: {sum(p.numel() for p in model.parameters()):,}")
-
+    
+    # Load scaler
+    with open(SCALER_PATH, 'rb') as f:
+        scaler = pickle.load(f)
+    
+    # Load thresholds
+    if os.path.exists(THRESH_PATH):
+        with open(THRESH_PATH, 'r') as f:
+            thresholds = json.load(f)
+    else:
+        thresholds = {"t1": -0.5, "t2": 0.5}  # defaults
+    
+    print(f"✅ Model loaded successfully!")
+    print(f"   - Device: {DEVICE}")
+    print(f"   - Thresholds: t1={thresholds['t1']:.3f}, t2={thresholds['t2']:.3f}")
+    
 except Exception as e:
     print(f"❌ Error loading model: {e}")
     import traceback
     traceback.print_exc()
-    model = None
-    scaler = None
-    input_dim = None
 
-# Class labels mapping
-CLASS_LABELS = {
-    0: 'False Positive',
-    1: 'Candidate',
-    2: 'Confirmed Exoplanet'
-}
 
-# ---------------- Frontend Routes ----------------
+# ============== Helper Functions ==============
+
+def standardize_tabular(z, scaler):
+    """Standardize tabular features using loaded scaler"""
+    vals = []
+    for k in TAB_FEATS:
+        if k in z.keys():
+            try:
+                v = float(np.asarray(z[k]).item())
+            except:
+                v = np.nan
+        else:
+            v = np.nan
+        vals.append(v)
+    
+    x = np.array(vals, dtype=np.float32)
+    mu = scaler['mean'][:len(x)]
+    sd = scaler['std'][:len(x)]
+    
+    # Fill NaN with mean
+    bad = ~np.isfinite(x)
+    x[bad] = mu[bad]
+    
+    # Z-score normalization
+    sd_safe = np.where((~np.isfinite(sd)) | (sd==0), 1.0, sd)
+    x = (x - mu) / sd_safe
+    
+    return x
+
+
+def discretize_prediction(y_hat, t1, t2):
+    """Convert continuous prediction to class label"""
+    if y_hat < t1:
+        return -1, "False Positive"
+    elif y_hat < t2:
+        return 0, "Candidate"
+    else:
+        return 1, "Confirmed Exoplanet"
+
+
+# ============== Routes ==============
+
 @app.route('/', methods=['GET'])
 def home():
     return render_template('index.html')
 
-@app.route('/<page>', methods=['GET'])
-def other_pages(page):
-    try:
-        return render_template(f'{page}.html')
-    except Exception as e:
-        return jsonify({'error': f'Page not found: {page}'}), 404
 
-# ---------------- API Routes ----------------
+@app.route('/upload_npz', methods=['POST'])
+def upload_npz():
+    """Accept .npz file upload and extract data"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+        
+        file = request.files['file']
+        
+        if not file.filename.endswith('.npz'):
+            return jsonify({'error': 'File must be .npz format'}), 400
+        
+        file_bytes = file.read()
+        npz_data = np.load(io.BytesIO(file_bytes), allow_pickle=True)
+        
+        data_info = extract_npz_data(npz_data)
+        
+        return jsonify({
+            'success': True,
+            'message': 'NPZ file uploaded successfully',
+            'data_info': data_info
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 400
+
+
 @app.route('/predict', methods=['POST'])
 def predict():
+    """Run prediction on uploaded npz file"""
     try:
         print("\n=== PREDICT REQUEST RECEIVED ===")
         
         if model is None or scaler is None:
             return jsonify({'error': 'Model not loaded properly'}), 500
         
-        # Define the 15 safe features your model expects
-        SAFE_FEATURES = [
-            'koi_period', 'koi_time0bk', 'koi_impact', 'koi_duration',
-            'koi_depth', 'koi_model_snr', 'koi_prad', 'koi_teq', 
-            'koi_insol', 'koi_steff', 'koi_slogg', 'koi_srad', 
-            'koi_kepmag', 'ra', 'dec'
-        ]
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
         
-        # Get data from request
-        data = request.json.get('data', [])
-        print(f"Data received: {len(data)} rows")
+        file = request.files['file']
         
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-
-        # Convert to DataFrame
-        df = pd.DataFrame(data)
-        print(f"Original DataFrame shape: {df.shape}")
+        if not file.filename.endswith('.npz'):
+            return jsonify({'error': 'File must be .npz format'}), 400
         
-        # Check if all safe features are present
-        missing_features = [f for f in SAFE_FEATURES if f not in df.columns]
-        if missing_features:
-            return jsonify({
-                'error': f'Missing required features: {missing_features}'
-            }), 400
+        # Load npz file
+        file_bytes = file.read()
+        z = np.load(io.BytesIO(file_bytes), allow_pickle=True)
         
-        # FILTER TO SAFE FEATURES ONLY
-        df_safe = df[SAFE_FEATURES].copy()
-        print(f"Filtered to {len(SAFE_FEATURES)} safe features: {df_safe.shape}")
+        # Extract light curve data
+        X = z['X'].astype(np.float32)                    # (2, L)
+        xi = z['xi'].astype(np.float32)                  # phase points
+        mask = z['mask'].astype(np.float32)[None, ...]   # (1, L)
+        x_lc = np.concatenate([X, mask], axis=0)[None, ...]  # (1, 3, L)
         
-        # Fill missing values
-        X = df_safe.fillna(df_safe.mean())
-
-        # Scale features
-        X_scaled = scaler.transform(X)
-        print("Data scaled successfully")
-
-        # Convert to torch tensor
-        X_tensor = torch.tensor(X_scaled, dtype=torch.float32).to(device)
-
-        # Make predictions
+        # Extract and standardize tabular features
+        x_tab = standardize_tabular(z, scaler)[None, ...]  # (1, 10)
+        
+        # Convert to tensors
+        x_lc_t = torch.from_numpy(x_lc).to(DEVICE)
+        x_tab_t = torch.from_numpy(x_tab).to(DEVICE)
+        
+        # Run prediction
         with torch.no_grad():
-            outputs = model(X_tensor)
-            probs = torch.softmax(outputs, dim=1).cpu().numpy()
-            preds = np.argmax(probs, axis=1)
-
-        print(f"✅ Predictions made: {len(preds)} results")
-
-        # Format results
-        results = []
-        for i, pred in enumerate(preds):
-            confidence = float(np.max(probs[i]) * 100)
-            classification = CLASS_LABELS.get(pred, 'Unknown')
-
-            results.append({
-                'id': i + 1,
-                'prediction': int(pred),
-                'classification': classification,
-                'confidence': round(confidence, 2),
-                'probabilities': {
-                    'false_positive': round(float(probs[i][0]) * 100, 2),
-                    'candidate': round(float(probs[i][1]) * 100, 2),
-                    'confirmed_exoplanet': round(float(probs[i][2]) * 100, 2)
-                }
-            })
-
+            y_hat = model(x_lc_t, x_tab_t).item()  # continuous score [-1, 1]
+        
+        # Discretize to class
+        t1 = thresholds.get('t1', -0.5)
+        t2 = thresholds.get('t2', 0.5)
+        label, classification = discretize_prediction(y_hat, t1, t2)
+        
+        # Calculate confidence (distance from nearest threshold)
+        if label == -1:
+            confidence = (t1 - y_hat) / (t1 + 1) * 100  # how far below t1
+        elif label == 1:
+            confidence = (y_hat - t2) / (1 - t2) * 100  # how far above t2
+        else:
+            dist_to_t1 = abs(y_hat - t1)
+            dist_to_t2 = abs(y_hat - t2)
+            confidence = (1 - min(dist_to_t1, dist_to_t2) / (t2 - t1)) * 100
+        
+        confidence = max(0, min(100, confidence))  # clamp to [0, 100]
+        
+        # Extract metadata
+        kepoi_name = str(np.asarray(z['kepoi_name']).item()) if 'kepoi_name' in z else "UNKNOWN"
+        kepid = int(np.asarray(z['kepid']).item()) if 'kepid' in z else -1
+        
+        print(f"Prediction for {kepoi_name}: {classification} (score={y_hat:.3f}, confidence={confidence:.1f}%)")
+        
+        result = {
+            'id': 1,
+            'kepoi_name': kepoi_name,
+            'kepid': kepid,
+            'prediction': int(label),
+            'classification': classification,
+            'confidence': round(confidence, 2),
+            'raw_score': round(y_hat, 4),
+            'thresholds': {'t1': t1, 't2': t2}
+        }
+        
+        # ============== PREPARE LIGHT CURVE DATA FOR FRONTEND ==============
+        # X has shape (2, L) where first row is typically the flux
+        flux_raw = X[0, :]  # or X[1, :] depending on which is the main flux
+        
+        # Normalize flux for better visualization
+        flux_mean = np.mean(flux_raw)
+        flux_std = np.std(flux_raw)
+        flux_normalized = (flux_raw - flux_mean) / flux_std if flux_std > 0 else flux_raw
+        
+        # Limit to 1000 points for performance
+        max_points = min(1000, len(xi))
+        
+        light_curve_data = {
+            'time': xi[:max_points].tolist(),
+            'flux': flux_normalized[:max_points].tolist()
+        }
+        
+        print(f"Sending light curve with {max_points} data points")
+        # ==================================================================
+        
         return jsonify({
             'success': True,
-            'results': results,
-            'total_predictions': len(results)
+            'results': [result],
+            'total_predictions': 1,
+            'light_curve': light_curve_data
         })
-
+        
     except Exception as e:
-        print(f"❌ EXCEPTION: {str(e)}")
+        print(f"Error in prediction: {str(e)}")
         import traceback
         traceback.print_exc()
         return jsonify({
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 400
-# Health check endpoint
+
+
+def extract_npz_data(z):
+    """Extract and validate data from npz file"""
+    try:
+        required_keys = ['X', 'xi', 'mask']
+        missing_keys = [k for k in required_keys if k not in z.keys()]
+        if missing_keys:
+            raise ValueError(f"Missing required keys: {missing_keys}")
+        
+        X = z['X'].astype(np.float32)
+        xi = z['xi'].astype(np.float32)
+        mask = z['mask'].astype(np.float32)
+        
+        kepoi_name = str(np.asarray(z['kepoi_name']).item()) if 'kepoi_name' in z else "UNKNOWN"
+        kepid = int(np.asarray(z['kepid']).item()) if 'kepid' in z else -1
+        period = float(np.asarray(z['period']).item()) if 'period' in z else None
+        duration_hr = float(np.asarray(z['duration_hr']).item()) if 'duration_hr' in z else None
+        
+        tabular_features = {}
+        for feat in TAB_FEATS:
+            if feat in z.keys():
+                try:
+                    tabular_features[feat] = float(np.asarray(z[feat]).item())
+                except:
+                    tabular_features[feat] = None
+            else:
+                tabular_features[feat] = None
+        
+        return {
+            'kepoi_name': kepoi_name,
+            'kepid': kepid,
+            'period': period,
+            'duration_hr': duration_hr,
+            'light_curve_shape': list(X.shape),
+            'phase_points': int(len(xi)),
+            'valid_points': int(np.sum(mask > 0.5)),
+            'tabular_features': tabular_features
+        }
+        
+    except Exception as e:
+        raise ValueError(f"Error extracting npz data: {str(e)}")
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
         'status': 'running',
         'model_loaded': model is not None,
-        'scaler_loaded': scaler is not None,
-        'input_dimensions': input_dim,
-        'num_classes': 3,
-        'class_labels': CLASS_LABELS,
-        'device': str(device)
+        'scaler_loaded': scaler is not None
     })
 
-# Model info endpoint
-@app.route('/model-info', methods=['GET'])
-def model_info():
-    if model is None:
-        return jsonify({'error': 'Model not loaded'}), 500
-    
-    return jsonify({
-        'input_dimensions': input_dim,
-        'num_classes': 3,
-        'class_labels': CLASS_LABELS,
-        'total_parameters': sum(p.numel() for p in model.parameters()),
-        'device': str(device),
-        'model_architecture': {
-            'type': 'Multi-Layer Perceptron (MLP)',
-            'hidden_dim': 512,
-            'num_blocks': 4,
-            'dropout_rate': 0.3
-        }
-    })
 
-# ---------------- Run Server ----------------
 if __name__ == '__main__':
     print("\n" + "="*50)
     print("🚀 Starting Exoplanet Detection Server")
