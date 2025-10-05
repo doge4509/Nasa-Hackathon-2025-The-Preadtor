@@ -385,6 +385,9 @@
       border: 1px solid #0a0;
       padding: 15px;
       margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       font-size: 15px;
     }
 
@@ -899,6 +902,7 @@
               <span style="color: #0a0;">[${r.kepoi_name || 'TARGET #' + r.id}]</span>
               <span class="result-classification ${classColor}"> ${classText}</span>
             </div>
+            <span style="color: #0f0;">CONFIDENCE: ${r.confidence}%</span>
           </div>
         `;
       }
